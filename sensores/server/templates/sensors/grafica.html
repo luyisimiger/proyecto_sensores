@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+
+</head>
+
+<body>
+
+  <h1> {{ sensor.name }} </h1>
+  <h4> {{ medition_pico }} </h4>
+  <h5 id="promedio"></h5>
+  <h5 id="desviacion_estandar"></h5>
+
+  <canvas id="canvas"></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/locale/es-us.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+  
+  <script type="text/javascript" src="{{ url_for('static', filename='js/util.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+
+  <script>
+
+      $(document).ready(function () {
+
+        var labels = [];
+        var data = {{ data | tojson }};
+        var chartjs_data = [];
+        chartjs_data.push(data);
+        var sse_data = [];
+
+        let vector = data.meditions.map( m => m.value );
+
+        let promedio = util.promedio(vector);
+        $("#promedio").text(promedio);
+
+        let desviacion_estandar = util.desviacion_estandar(vector);;
+        $("#desviacion_estandar").text(desviacion_estandar);
+
+        let datasets = realtime(chartjs_data).datasets();
+        
+        window.data = data;
+        window.datasets = datasets;
+
+        const config = {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets,
+            },
+            options: {
+                responsive: true,
+                title: {
+                    display: false,
+                    text: 'Creating Real-Time Charts with Flask'
+                },
+                tooltips: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                hover: {
+                    mode: 'nearest',
+                    intersect: true
+                },
+                scales: {
+                    xAxes: [{
+                        type: 'time',
+                        display: true,
+                        time: {
+                          parser: 'DD/MM/YYY HH:mm:ss',
+                          tooltipFormat: 'll HH:mm'
+                        },
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Tiempo'
+                        }                        
+                    }],
+                    yAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Medicion'
+                        }
+                    }]
+                },
+            }
+        };
+
+        const context = document.getElementById('canvas').getContext('2d');
+
+        window.lineChart = new Chart(context, config);
+
+        /*
+        const source = new EventSource("/chart-data");
+
+        source.onmessage = function (event) {
+            
+          console.log(event.data);
+
+          const data = JSON.parse(event.data);
+          
+          sse_data.push({
+              sensor: data.sensor,
+              x: data.time,
+              y: data.value
+          });
+
+        }
+        */
+      });
+
+  </script>
+
+</body>
+
+</html>

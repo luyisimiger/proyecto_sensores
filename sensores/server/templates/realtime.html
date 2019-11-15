@@ -1,0 +1,173 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<div class="container">
+    <div class="card">
+        <div class="card-content">
+            <canvas id="canvas"></canvas>
+        </div>
+        <footer class="card-footer">
+        </footer>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript" src="{{ url_for('static', filename='lib/chartjs-plugin-streaming.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/util.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+
+<script>
+
+    $(document).ready(function () {
+
+        var labels = [];
+        var chartjs_data = {{ data | tojson
+    }};
+    var sse_data = [];
+
+    window.sensores = chartjs_data.sensores;
+    let datasets = realtime(chartjs_data.sensores).datasets();
+    window.datasets = datasets;
+
+    const config = {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: datasets,
+        },
+        options: {
+            responsive: true,
+            title: {
+                display: false,
+                text: 'Datos en tiempo real'
+            },
+            tooltips: {
+                mode: 'index',
+                intersect: false,
+            },
+            hover: {
+                mode: 'nearest',
+                intersect: true
+            },
+            scales: {
+                xAxes: [{
+                    //type: 'time',
+                    type: 'realtime',
+                    display: true,
+                    //distribution: 'series',
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Tiempo'
+                    },
+
+                    realtime: {
+                        duration: 60000,
+                        ttl: 90000,
+                        refresh: 250,
+                        delay: 1000,
+                        pause: false,
+                        onRefresh: function (chart) {
+                            if (sse_data.length > 1) {
+                                data = sse_data.shift();
+                                let index = chart.data.datasets.findIndex(e => { return e.label === data.sensor.name });
+                                if (index != -1) {
+                                    chart.data.datasets[index].data.push(data);
+                                }
+                            }
+                        }
+                    }
+                }],
+                yAxes: [{
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Medicion'
+                    }
+                }]
+            },
+            plugins: {
+                streaming: {
+                    frameRate: 30
+                }
+            }
+        }
+    };
+
+    const context = document.getElementById('canvas').getContext('2d');
+
+    window.lineChart = new Chart(context, config);
+
+    const source = new EventSource("/chart-data");
+
+    source.onmessage = function (event) {
+
+        console.log(event.data);
+
+        const data = JSON.parse(event.data);
+
+        //console.log(data);
+        let index = 1; //parseInt(1 + Math.random() * (8 -1));
+
+        //config.data.datasets[index].data.push({
+        sse_data.push({
+            sensor: data.sensor,
+            x: data.time,
+            y: data.value
+        });
+
+        //console.log(sse_data);
+
+        /*
+        if (config.data.labels.length === 20) {
+            config.data.labels.shift();
+            config.data.datasets[0].data.shift();
+        }
+        
+        config.data.labels.push(data.time);
+        config.data.datasets[0].data.push(data.value);
+        lineChart.update();
+        */
+
+    }
+
+    /*
+    const source = new EventSource("/stream/sensors/data");
+
+        source.onmessage = function (event) {
+            
+            const data = JSON.parse(event.data);
+
+            var dataset = config.data.datasets.find( el => el.label == data.sensor.name )
+
+            if (dataset == undefined) {
+
+                dataset = {
+                    label: data.sensor.name,
+                    data: [],
+                    fill: false,
+                }
+
+                config.data.datasets.push(dataset);
+            
+            }
+
+            data.sensor.meditions.forEach(function(medition) {
+                config.data.labels.push(medition.fechahora);
+                dataset.data.push(medition.value)
+            });  
+
+            if (config.data.labels.length === 20) {
+                config.data.labels.shift();
+                dataset.data.shift();
+            }              
+            
+            lineChart.update();
+        }
+    */
+
+    });
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,207 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<br>
+<div class="container is-fluid">
+  <div class="columns">
+
+    <div class="column is-4">
+      <nav class="panel is-black">
+          <p class="panel-heading">
+              {{ sensor.name }} - {{ sensor.type }}
+          </p>
+          <p class="panel-block is-active">
+            <span class="panel-icon">
+              <i class="fas fa-book" aria-hidden="true"></i>
+            </span>
+            <strong>Tipo medici&oacute;n:</strong> <br> {{ sensor.type }}
+          </p>
+          <p class="panel-block">
+            <span class="panel-icon">
+              <i class="fas fa-book" aria-hidden="true"></i>
+            </span>
+            <strong>Medici&oacute;n pico:</strong> <br> <span class="tag is-info">{{ medition_pico.value }}</span> el {{ medition_pico.fechahora }}
+          </p>
+          <p class="panel-block">
+              <span class="panel-icon">
+                <i class="fas fa-book" aria-hidden="true"></i>
+              </span>
+              <strong>Medici&oacute;n promedio:</strong> <br> <span class="tag is-info" id="promedio"></span>
+            </p>
+            <p class="panel-block">
+                <span class="panel-icon">
+                  <i class="fas fa-book" aria-hidden="true"></i>
+                </span>
+                <strong>Desviaci&oacute;n estandar:</strong> <br> <span class="tag is-info" id="desviacion_estandar"></span>
+              </p>
+        </nav>
+
+    </div>
+    <div class="column">
+      <div class="tabs is-toggle is-centered">
+        <ul>
+          <li class="tab is-active" onclick="openTab(event,'historico')"><a>Hist&oacute;rico de mediciones</a></li>
+          <li class="tab" onclick="openTab(event,'grafica')"><a>Grafica</a></li>
+        </ul>
+      </div>
+
+      <div class="container is-fluid">
+        <div id="historico" class="content-tab">
+          <table class="table is-fullwidth is-striped">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th><abbr title="Fecha y hora">Fecha y hora</abbr></th>
+                <th><abbr title="Valor">Valor</abbr></th>
+              </tr>
+            </thead>
+            <tfoot>
+              <tr>
+                <th>#</th>
+                <th><abbr title="Fecha y hora">Fecha y hora</abbr></th>
+                <th><abbr title="Valor">Valor</abbr></th>
+              </tr>
+            </tfoot>
+            <tbody>
+              {% for m in meditions.order_by('-fechahora').all() %}
+              <tr>
+                <th>{{ loop.index }}</th>
+                <td>{{ m.fechahora }}</td>
+                <td>{{ m.value }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div id="grafica" class="content-tab" style="display:none">
+          <canvas id="canvas"></canvas>
+        </div>
+      </div>
+
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript" src="{{ url_for('static', filename='js/util.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/realtime.js') }}"></script>
+
+<script>
+  function openTab(evt, tabName) {
+    var i, x, tablinks;
+    x = document.getElementsByClassName("content-tab");
+    for (i = 0; i < x.length; i++) {
+      x[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tab");
+    for (i = 0; i < x.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(" is-active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " is-active";
+  }
+</script>
+
+<script>
+
+    $(document).ready(function () {
+
+        var labels = [];
+        var data = {{ data | tojson
+    }};
+    var chartjs_data = [];
+    chartjs_data.push(data);
+    var sse_data = [];
+
+    let vector = data.meditions.map(m => m.value);
+
+    let promedio = util.promedio(vector);
+    $("#promedio").text(promedio);
+
+    let desviacion_estandar = util.desviacion_estandar(vector);;
+    $("#desviacion_estandar").text(desviacion_estandar);
+
+    let datasets = realtime(chartjs_data).datasets();
+
+    window.data = data;
+    window.datasets = datasets;
+
+    const config = {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: datasets,
+        },
+        options: {
+            responsive: true,
+            title: {
+                display: false,
+                text: 'Creating Real-Time Charts with Flask'
+            },
+            tooltips: {
+                mode: 'index',
+                intersect: false,
+            },
+            hover: {
+                mode: 'nearest',
+                intersect: true
+            },
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                    display: true,
+                    time: {
+                        parser: 'DD/MM/YYY HH:mm:ss',
+                        tooltipFormat: 'll HH:mm'
+                    },
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Tiempo'
+                    }
+                }],
+                yAxes: [{
+                    display: true,
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Medicion'
+                    }
+                }]
+            },
+        }
+    };
+
+    const context = document.getElementById('canvas').getContext('2d');
+
+    window.lineChart = new Chart(context, config);
+
+        /*
+        const source = new EventSource("/chart-data");
+
+        source.onmessage = function (event) {
+            
+          console.log(event.data);
+
+          const data = JSON.parse(event.data);
+          
+          sse_data.push({
+              sensor: data.sensor,
+              x: data.time,
+              y: data.value
+          });
+
+        }
+        */
+      });
+
+</script>
+{% endblock %}
+
+<ul>
+
+</ul>
+</body>
+
+</html>

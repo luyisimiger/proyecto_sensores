@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Proyecto STR</title>
+    <link href="https://unpkg.com/bulma@0.8.0/css/bulma.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <nav class="navbar is-warning is-bold" role="navigation" aria-label="dropdown navigation">
+        <a class="navbar-item">
+          <span class="subtitle">Proyecto STR</span>
+        </a>
+      
+        <a class="navbar-item" href="{{ url_for('sensor.sensors_list') }}">Sensores</a>
+        <a class="navbar-item" href="{{ url_for('main.realtime') }}">Realtime</a>
+      </nav>
+      
+      <section class="hero is-warning is-bold is-hidden">
+        <div class="hero-body">
+          <p class="title">
+            Realtime data
+          </p>
+          <p class="subtitle">
+            Para visualizar en tiempo real las mediciones de los diferentes sensores
+          </p>
+        </div>
+      </section>
+
+    {% block body %}
+    {% endblock %}
+
+    <!--suppress JSUnresolvedLibraryURL -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/locale/es-us.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js"></script>
+
+    {% block script %}
+    {% endblock %}
+
+    <footer class="footer">
+        <div class="content has-text-centered">
+          <p>
+            <strong>Trabajo realizado</strong> por <a href="#">Luis Mejia</a> &amp; <a href="#">Saad Bittar</a>. El codigo fuente esta licenciado bajo
+            <a href="http://opensource.org/licenses/mit-license.php">MIT</a>.
+          </p>
+        </div>
+      </footer>
+    
+</body>
+
+</html>
